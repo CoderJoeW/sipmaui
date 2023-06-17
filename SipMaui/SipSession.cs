@@ -16,7 +16,30 @@ namespace SipMaui
             InitialInvite = initialInvite;
         }
 
-        public void EstablishSession() { }
-        public void TerminateSession() { }
+        public void EstablishSession() 
+        {
+            var headers = new Dictionary<string, string>()
+            {
+                { "To", InitialInvite.Headers["To"] },
+                { "From", InitialInvite.Headers["From"] }
+            };
+
+            var invite = new SipMessage("INVITE", headers, "");
+
+            CurrentMessage = invite;
+        }
+
+        public void TerminateSession()
+        {
+            var headers = new Dictionary<string, string>()
+            {
+                { "To", InitialInvite.Headers["To"] },
+                { "From", InitialInvite.Headers["From"] }
+            };
+
+            var bye = new SipMessage("BYE", headers, "");
+
+            CurrentMessage = bye;
+        }
     }
 }

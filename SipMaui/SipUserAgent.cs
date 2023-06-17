@@ -15,7 +15,16 @@ namespace SipMaui
             Sessions = new List<SipSession>();
         }
 
-        public void SendMessage(SipMessage message) { }
-        public void ReceiveMessage(string message) { }
+        public void SendMessage(SipMessage message)
+        {
+            var rawMessage = message.ConstructMessage();
+        }
+
+        public void ReceiveMessage(string rawMessage)
+        {
+            var message = new SipMessage("", new Dictionary<string, string>(), "");
+
+            message.ParseMessage(rawMessage);
+        }
     }
 }
