@@ -152,24 +152,6 @@ namespace SipMaui
 
             switch(message.Method)
             {
-                case "INVITE":
-                    var headers = new Dictionary<string, string>
-                    {
-                        { "To", message.Headers["From"] },
-                        { "From", message.Headers["To"] },
-                        { "CSeq", "1 INVITE" },
-                        { "Call-ID", message.Headers["Call-ID"] },
-                        { "Contact", $"<sip:{UserSipAddress};transport={TransportProtocol}>" },
-                        { "Content-Type", "application/sdp" },
-                    };
-
-                    var body = "v=0\r\no=alice 53655765 2353687637 IN IP4 pc33.atlanta.com\r\n...";
-
-                    var response = new SipMessage("SIP/2.0 200 OK", headers, body);
-
-                    SendMessage(response);
-
-                    break;
                 case "ACK":
                     session.EstablishSession();
                     break;
