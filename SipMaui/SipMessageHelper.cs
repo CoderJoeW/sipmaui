@@ -8,8 +8,10 @@ namespace SipMaui
 {
     public class SipMessageHelper
     {
-        private Random _random = new Random();
+        public const string EXPIRE = "3600";
+        public const string MAX_FORWARDS = "70";
 
+        private Random _random = new Random();
         private SipUserAgent _userAgent;
 
         public SipMessageHelper(SipUserAgent userAgent)
@@ -42,8 +44,8 @@ namespace SipMaui
         {
             var headers = CreateCommonHeaders(sipServer, sipPort, userSipAddress, transport, message.Headers["Call-ID"]);
             headers["CSeq"] = "2 REGISTER";
-            headers["Expires"] = "3600";
-            headers["Max-Forwards"] = "70";
+            headers["Expires"] = EXPIRE;
+            headers["Max-Forwards"] = MAX_FORWARDS;
             headers["Content-Length"] = "0";
             headers[message.Method == "401 Unauthorized" ? "Authorization" : "Proxy-Authorization"] = $"Digest username=\"{username}\", realm=\"{realm}\", nonce=\"{nonce}\", uri=\"{userSipAddress}\", response=\"{response}\", algorithm={algorithm}, opaque=\"{opaque}\", qop={qop}, nc={nc}, cnonce=\"{cnonce}\"";
 
