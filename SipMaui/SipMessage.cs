@@ -39,9 +39,9 @@ namespace SipMaui
 
             foreach (var line in headerLines)
             {
-                var parts = line.Split(':');
+                var parts = line.Split(new[] { ':' }, 2);
                 var name = parts[0].Trim();
-                var value = parts[1].Trim();
+                var value = parts.Length > 1 ? parts[1].Trim() : string.Empty;
 
                 Headers[name] = value;
             }
