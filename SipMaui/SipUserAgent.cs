@@ -24,6 +24,8 @@ namespace SipMaui
 
         public CancellationTokenSource ListeningCts { get; private set; }
 
+        private SipMessageHelper _sipMessageHelper;
+
         public SipUserAgent(string sipServer, int sipPort, string userSipAddress, string transportProtocol, string username, string password)
         {
             Sessions = new List<SipSession>();
@@ -44,6 +46,7 @@ namespace SipMaui
                 default:
                     throw new ArgumentException("Unsupported transport protocol. Use either \"tcp\" or \"udp\".");
             }
+            _sipMessageHelper = new SipMessageHelper(this);
         }
 
         public void StartListening()
@@ -170,7 +173,9 @@ namespace SipMaui
                 ? ComputeMd5Hash($"{ha1}:{nonce}:{nc}:{cnonce}:{qop}:{ha2}")
                 : ComputeMd5Hash($"{ha1}:{nonce}:{ha2}");
 
-            await SipMessageHelper.AuthenticateRegister(this, message, SipServer, SipPort, Username, UserSipAddress, TransportProtocol, realm, nonce, opaque, qop, nc, cnonce, algorithm, response);
+
+
+            await _sipMessageHelper.AuthenticateRegister(message, SipServer, SipPort, Username, UserSipAddress, TransportProtocol, realm, nonce, opaque, qop, nc, cnonce, algorithm, response);
         }
 
         public string ComputeMd5Hash(string input)
