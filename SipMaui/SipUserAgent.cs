@@ -142,6 +142,9 @@ namespace SipMaui
                 case "407 Proxy Authentication Required":
                     HandleAuthentication(message);
                     break;
+                case "OPTIONS":
+                    HandleOptions(message);
+                    break;
             }
         }
 
@@ -151,11 +154,6 @@ namespace SipMaui
             var authenticateHeader = message.Method == "401 Unauthorized" ? "WWW-Authenticate" : "Proxy-Authenticate";
             var authenticateValue = message.Headers[authenticateHeader];
             var parameters = authenticateValue.Split(',').Select(param => param.Trim().Split('=')).ToDictionary(parts => parts[0], parts => parts[1].Trim('"'));
-
-            foreach (KeyValuePair<string, string> kvp in parameters)
-            {
-                Console.WriteLine($"{kvp.Key}:{kvp.Value}");
-            }
 
             var nonce = parameters["nonce"];
             var realm = parameters["Digest realm"];
@@ -176,6 +174,29 @@ namespace SipMaui
 
 
             await _sipMessageHelper.AuthenticateRegister(message, SipServer, SipPort, Username, UserSipAddress, TransportProtocol, realm, nonce, opaque, qop, nc, cnonce, algorithm, response);
+        }
+
+        public async Task HandleOptions(SipMessage message)
+        {
+            foreach(KeyValuePair<string,string> kvp in message.Headers)
+            {
+                Console.WriteLine($"{kvp.Key}:{kvp.Value}");
+            }
+            var headers = new Dictionary<string, string>()
+            {
+                { "Via", message.Headers["Via"] },
+                { "From", message.Headers["From"] },
+                { "To", message.Headers["To"] },
+                { "Call-ID", message.Headers["Call-ID"] },
+                { "CSeq", message.Headers["CSeq"] },
+                { "Contact", message.Headers["Contact"] },
+                { "Allow", "INVITE, ACK, BYE, CANCEL, OPTIONS, MESSAGE, UPDATE, INFO, REGISTER" },
+                { "Content-Length", "0" }
+            };
+
+            var response = new SipMessage("SIP/2.0 200 OK", headers, "");
+
+            await SendMessage(response);
         }
 
         public string ComputeMd5Hash(string input)
