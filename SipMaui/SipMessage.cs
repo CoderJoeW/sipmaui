@@ -24,12 +24,20 @@ namespace SipMaui
             var lines = message.Split("\r\n");
 
             var startLineParts = lines[0].Split(' ');
-            Method = startLineParts[0];
+
+            if (startLineParts[0] == "SIP/2.0")
+            {
+                Method = string.Join(" ", startLineParts.Skip(1));
+            }
+            else
+            {
+                Method = startLineParts[0];
+            }
 
             Headers = new Dictionary<string, string>();
             var headerLines = lines.Skip(1).TakeWhile(line => line != "").ToList();
 
-            foreach(var line in headerLines)
+            foreach (var line in headerLines)
             {
                 var parts = line.Split(':');
                 var name = parts[0].Trim();

@@ -24,5 +24,26 @@ namespace SipMaui
             var registerMessage = new SipMessage($"REGISTER {userSipAddress}", headers, "");
             await agent.SendMessage(registerMessage);
         }
+
+        public static async Task AuthenticateRegister(SipUserAgent agent, SipMessage message, string sipServer, int sipPort, string username, string userSipAddress, string transport, string realm, string nonce, string opaque, string qop, string nc, string cnonce, string algorithm, string response)
+        {
+            var headers = new Dictionary<string, string>
+            {
+                { "Via", $"SIP/2.0/UDP {sipServer}:{sipPort};branch=z9hG4bK{new Random().Next()}" },
+                { "To", $"<{userSipAddress}>" },
+                { "From", $"<{userSipAddress}>" },
+                { "CSeq", "2 REGISTER" },
+                { "Call-ID", message.Headers["Call-ID"] },
+                { "Contact", $"<{userSipAddress};transport={transport}>" },
+                { "Expires", "3600" },
+                { "Max-Forwards", "70" },
+                { "Content-Length", "0" },
+                { message.Method == "401 Unauthorized" ? "Authorization" : "Proxy-Authorization", $"Digest username=\"{username}\", realm=\"{realm}\", nonce=\"{nonce}\", uri=\"{userSipAddress}\", response=\"{response}\", algorithm={algorithm}, opaque=\"{opaque}\", qop={qop}, nc={nc}, cnonce=\"{cnonce}\"" },
+            };
+
+            var newMessage = new SipMessage($"REGISTER {userSipAddress}", headers, message.Body);
+            await agent.SendMessage(newMessage);
+        }
+
     }
 }

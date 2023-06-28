@@ -133,31 +133,8 @@ namespace SipMaui
 
         public void HandleReceivedMessage(SipMessage message)
         {
-            var session = Sessions.FirstOrDefault(s => s.InitialInvite.Headers["From"] == message.Headers["To"]);
-
-            if (session == null)
-            {
-                if(message.Method == "INVITE")
-                {
-                    session = new SipSession(message);
-                    Sessions.Add(session);
-                }
-                else
-                {
-                    return;
-                }
-            }
-
-            session.CurrentMessage = message;
-
             switch(message.Method)
             {
-                case "ACK":
-                    session.EstablishSession();
-                    break;
-                case "BYE":
-                    session.TerminateSession();
-                    break;
                 case "401 Unauthorized":
                 case "407 Proxy Authentication Required":
                     HandleAuthentication(message);
@@ -165,31 +142,35 @@ namespace SipMaui
             }
         }
 
-        public void HandleAuthentication(SipMessage message)
+        public async Task HandleAuthentication(SipMessage message)
         {
+            Console.WriteLine(Password);
             var authenticateHeader = message.Method == "401 Unauthorized" ? "WWW-Authenticate" : "Proxy-Authenticate";
             var authenticateValue = message.Headers[authenticateHeader];
             var parameters = authenticateValue.Split(',').Select(param => param.Trim().Split('=')).ToDictionary(parts => parts[0], parts => parts[1].Trim('"'));
 
+            foreach (KeyValuePair<string, string> kvp in parameters)
+            {
+                Console.WriteLine($"{kvp.Key}:{kvp.Value}");
+            }
+
             var nonce = parameters["nonce"];
-            var realm = parameters["realm"];
+            var realm = parameters["Digest realm"];
+            var opaque = parameters.ContainsKey("opaque") ? parameters["opaque"] : null;
+            var qop = parameters.ContainsKey("qop") ? parameters["qop"] : null;
+            var algorithm = parameters.ContainsKey("algorithm") ? parameters["algorithm"] : "MD5";
+
+            var nc = "00000001";
+            var cnonce = new Random().Next(123400, 9999999).ToString("x");
 
             var ha1 = ComputeMd5Hash($"{Username}:{realm}:{Password}");
-            var ha2 = ComputeMd5Hash($"{message.Method}:{UserSipAddress}");
-            var response = ComputeMd5Hash($"{ha1}:{nonce}:{ha2}");
+            var ha2 = ComputeMd5Hash($"REGISTER:{UserSipAddress}");
 
-            var headers = new Dictionary<string, string>
-            {
-                { "To", message.Headers["From"] },
-                { "From", message.Headers["To"] },
-                { "CSeq", "2 " + message.Method },
-                { "Call-ID", message.Headers["Call-ID"] },
-                { "Contact", $"<sip:{UserSipAddress};transport={TransportProtocol}>" },
-                { message.Method == "401 Unauthorized" ? "Authorization" : "Proxy-Authorization", $"Digest username=\"{Username}\", realm=\"{realm}\", nonce=\"{nonce}\", uri=\"{UserSipAddress}\", response=\"{response}\"" },
-            };
+            var response = (qop == "auth")
+                ? ComputeMd5Hash($"{ha1}:{nonce}:{nc}:{cnonce}:{qop}:{ha2}")
+                : ComputeMd5Hash($"{ha1}:{nonce}:{ha2}");
 
-            var newMessage = new SipMessage(message.Method, headers, message.Body);
-            SendMessage(newMessage);
+            await SipMessageHelper.AuthenticateRegister(this, message, SipServer, SipPort, Username, UserSipAddress, TransportProtocol, realm, nonce, opaque, qop, nc, cnonce, algorithm, response);
         }
 
         public string ComputeMd5Hash(string input)
