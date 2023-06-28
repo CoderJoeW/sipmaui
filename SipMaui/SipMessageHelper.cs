@@ -31,10 +31,10 @@ namespace SipMaui
 
         public async Task Register(string sipServer, int sipPort, string username, string transport)
         {
-            var headers = CreateCommonHeaders(sipServer, sipPort, username, transport);
+            var headers = CreateCommonHeaders(sipServer, sipPort, $"sip:{username}@{sipServer}", transport);
             headers["CSeq"] = "1 REGISTER";
 
-            var registerMessage = new SipMessage($"REGISTER {username}@{sipServer}", headers, "");
+            var registerMessage = new SipMessage($"REGISTER sip:{username}@{sipServer}", headers, "");
             await _userAgent.SendMessage(registerMessage);
         }
 
