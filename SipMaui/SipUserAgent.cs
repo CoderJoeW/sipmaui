@@ -143,10 +143,10 @@ namespace SipMaui
                     HandleAuthentication(message);
                     break;
                 case "OPTIONS":
-                    HandleOptions(message);
+                    _sipMessageHelper.RespondOptions(SipServer, SipPort, Username, TransportProtocol);
                     break;
                 case "NOTIFY":
-                    HandleNotify(message);
+                    _sipMessageHelper.RespondNotify(SipServer, SipPort, Username, TransportProtocol);
                     break;
             }
         }
@@ -177,43 +177,6 @@ namespace SipMaui
 
 
             await _sipMessageHelper.AuthenticateRegister(message, SipServer, SipPort, Username, UserSipAddress, TransportProtocol, realm, nonce, opaque, qop, nc, cnonce, algorithm, response);
-        }
-
-        public async Task HandleOptions(SipMessage message)
-        {
-            var headers = new Dictionary<string, string>()
-            {
-                { "Via", message.Headers["Via"] },
-                { "From", message.Headers["From"] },
-                { "To", message.Headers["To"] },
-                { "Call-ID", message.Headers["Call-ID"] },
-                { "CSeq", message.Headers["CSeq"] },
-                { "Contact", message.Headers["Contact"] },
-                { "Allow", "INVITE, ACK, BYE, CANCEL, OPTIONS, MESSAGE, UPDATE, INFO, REGISTER" },
-                { "Content-Length", "0" }
-            };
-
-            var response = new SipMessage("SIP/2.0 200 OK", headers, "");
-
-            await SendMessage(response);
-        }
-
-        public async Task HandleNotify(SipMessage message)
-        {
-            var headers = new Dictionary<string, string>()
-            {
-                { "Via", message.Headers["Via"] },
-                { "From", message.Headers["From"] },
-                { "To", message.Headers["To"] },
-                { "Call-ID", message.Headers["Call-ID"] },
-                { "CSeq", message.Headers["CSeq"] },
-                { "Contact", message.Headers["Contact"] },
-                { "Content-Length", "0" }
-            };
-
-            var response = new SipMessage("SIP/2.0 200 OK", headers, "");
-
-            await SendMessage(response);
         }
 
         public string ComputeMd5Hash(string input)
