@@ -145,6 +145,9 @@ namespace SipMaui
                 case "OPTIONS":
                     HandleOptions(message);
                     break;
+                case "NOTIFY":
+                    HandleNotify(message);
+                    break;
             }
         }
 
@@ -178,10 +181,6 @@ namespace SipMaui
 
         public async Task HandleOptions(SipMessage message)
         {
-            foreach(KeyValuePair<string,string> kvp in message.Headers)
-            {
-                Console.WriteLine($"{kvp.Key}:{kvp.Value}");
-            }
             var headers = new Dictionary<string, string>()
             {
                 { "Via", message.Headers["Via"] },
@@ -191,6 +190,24 @@ namespace SipMaui
                 { "CSeq", message.Headers["CSeq"] },
                 { "Contact", message.Headers["Contact"] },
                 { "Allow", "INVITE, ACK, BYE, CANCEL, OPTIONS, MESSAGE, UPDATE, INFO, REGISTER" },
+                { "Content-Length", "0" }
+            };
+
+            var response = new SipMessage("SIP/2.0 200 OK", headers, "");
+
+            await SendMessage(response);
+        }
+
+        public async Task HandleNotify(SipMessage message)
+        {
+            var headers = new Dictionary<string, string>()
+            {
+                { "Via", message.Headers["Via"] },
+                { "From", message.Headers["From"] },
+                { "To", message.Headers["To"] },
+                { "Call-ID", message.Headers["Call-ID"] },
+                { "CSeq", message.Headers["CSeq"] },
+                { "Contact", message.Headers["Contact"] },
                 { "Content-Length", "0" }
             };
 
