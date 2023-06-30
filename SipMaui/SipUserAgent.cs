@@ -71,25 +71,7 @@ namespace SipMaui
         {
             byte[] data = Encoding.ASCII.GetBytes(message.ConstructMessage());
 
-            switch (TransportProtocol)
-            {
-                case "tcp":
-                    if (!TcpConnection.Connected)
-                    {
-                        await TcpConnection.ConnectAsync(SipServer, SipPort);
-                    }
-
-                    NetworkStream stream = TcpConnection.GetStream();
-                    await stream.WriteAsync(data, 0, data.Length);
-                    break;
-                case "udp":
-                    if (!UdpConnection.Client.Connected)
-                    {
-                        UdpConnection.Connect(SipServer, SipPort);
-                    }
-                    await UdpConnection.SendAsync(data, data.Length);
-                    break;
-            }
+            await (TransportProtocol.ToLower() == "tcp" ? SendTcpMessage(data) : SendUdpMessage(data));
 
             MessageSent?.Invoke(message);
         }
@@ -143,10 +125,10 @@ namespace SipMaui
                     HandleAuthenticationChallenge(message);
                     break;
                 case "OPTIONS":
-                    _sipMessageHelper.RespondOptions(SipServer, SipPort, Username, TransportProtocol);
+                    _sipMessageHelper.RespondWithOk(SipServer, SipPort, Username, TransportProtocol, true);
                     break;
                 case "NOTIFY":
-                    _sipMessageHelper.RespondNotify(SipServer, SipPort, Username, TransportProtocol);
+                    _sipMessageHelper.RespondWithOk(SipServer, SipPort, Username, TransportProtocol);
                     break;
             }
         }
@@ -194,6 +176,26 @@ namespace SipMaui
 
                 return sb.ToString();
             }
+        }
+
+        private async Task SendTcpMessage(byte[] data)
+        {
+            if (!TcpConnection.Connected)
+            {
+                await TcpConnection.ConnectAsync(SipServer, SipPort);
+            }
+
+            NetworkStream stream = TcpConnection.GetStream();
+            await stream.WriteAsync(data, 0, data.Length);
+        }
+
+        private async Task SendUdpMessage(byte[] data)
+        {
+            if (!UdpConnection.Client.Connected)
+            {
+                UdpConnection.Connect(SipServer, SipPort);
+            }
+            await UdpConnection.SendAsync(data, data.Length);
         }
 
     }

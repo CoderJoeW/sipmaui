@@ -39,19 +39,11 @@ namespace SipMaui
             await SendMessage($"REGISTER {userSipAddress}", headers, message.Body);
         }
 
-        public async Task RespondOptions(string sipServer, int sipPort, string username, string transport)
-        {
-            var headers = CreateCommonHeaders(sipServer, sipPort, username, transport);
-            headers["Allow"] = "INVITE, ACK, BYE, CANCEL, OPTIONS, MESSAGE, UPDATE, INFO, REGISTER";
-            headers["Content-Type"] = "0";
-
-            await SendMessage("SIP/2.0 200 OK", headers, "");
-        }
-
-        public async Task RespondNotify(string sipServer, int sipPort, string username, string transport)
+        public async Task RespondWithOk(string sipServer, int sipPort, string username, string transport, bool allowMethods = false)
         {
             var headers = CreateCommonHeaders(sipServer, sipPort, username, transport);
             headers["Content-Type"] = "0";
+            if (allowMethods) headers["Allow"] = "INVITE, ACK, BYE, CANCEL, OPTIONS, MESSAGE, UPDATE, INFO, REGISTER";
 
             await SendMessage("SIP/2.0 200 OK", headers, "");
         }
