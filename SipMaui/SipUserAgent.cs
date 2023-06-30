@@ -13,8 +13,8 @@ namespace SipMaui
         public event Action<SipMessage> MessageSent;
 
         public List<SipSession> Sessions { get; set; }
-        public TcpClient TcpClient { get; set; }
-        public UdpClient UdpClient { get; set; }
+        public TcpClient TcpConnection { get; set; }
+        public UdpClient UdpConnection { get; set; }
         public string SipServer { get; set; }
         public int SipPort { get; set; }
         public string UserSipAddress { get; set; }
@@ -38,10 +38,10 @@ namespace SipMaui
             switch (TransportProtocol)
             {
                 case "tcp":
-                    TcpClient = new TcpClient();
+                    TcpConnection = new TcpClient();
                     break;
                 case "udp":
-                    UdpClient = new UdpClient();
+                    UdpConnection = new UdpClient();
                     break;
                 default:
                     throw new ArgumentException("Unsupported transport protocol. Use either \"tcp\" or \"udp\".");
@@ -49,7 +49,7 @@ namespace SipMaui
             _sipMessageHelper = new SipMessageHelper(this);
         }
 
-        public void StartListening()
+        public void StartListeningForSipMessages()
         {
             ListeningCts = new CancellationTokenSource();
 
@@ -62,7 +62,7 @@ namespace SipMaui
             });
         }
 
-        public void StopListening()
+        public void StopListeningForSipMessages()
         {
             ListeningCts?.Cancel();
         }
@@ -74,20 +74,20 @@ namespace SipMaui
             switch (TransportProtocol)
             {
                 case "tcp":
-                    if (!TcpClient.Connected)
+                    if (!TcpConnection.Connected)
                     {
-                        await TcpClient.ConnectAsync(SipServer, SipPort);
+                        await TcpConnection.ConnectAsync(SipServer, SipPort);
                     }
 
-                    NetworkStream stream = TcpClient.GetStream();
+                    NetworkStream stream = TcpConnection.GetStream();
                     await stream.WriteAsync(data, 0, data.Length);
                     break;
                 case "udp":
-                    if (!UdpClient.Client.Connected)
+                    if (!UdpConnection.Client.Connected)
                     {
-                        UdpClient.Connect(SipServer, SipPort);
+                        UdpConnection.Connect(SipServer, SipPort);
                     }
-                    await UdpClient.SendAsync(data, data.Length);
+                    await UdpConnection.SendAsync(data, data.Length);
                     break;
             }
 
@@ -102,12 +102,12 @@ namespace SipMaui
             switch (TransportProtocol)
             {
                 case "tcp":
-                    if (!TcpClient.Connected)
+                    if (!TcpConnection.Connected)
                     {
-                        await TcpClient.ConnectAsync(SipServer, SipPort);
+                        await TcpConnection.ConnectAsync(SipServer, SipPort);
                     }
 
-                    NetworkStream stream = TcpClient.GetStream();
+                    NetworkStream stream = TcpConnection.GetStream();
 
                     int bytes;
                     while ((bytes = await stream.ReadAsync(data, 0, data.Length)) != 0)
@@ -116,12 +116,12 @@ namespace SipMaui
                     }
                     break;
                 case "udp":
-                    if (!UdpClient.Client.Connected)
+                    if (!UdpConnection.Client.Connected)
                     {
-                        UdpClient.Connect(SipServer, SipPort);
+                        UdpConnection.Connect(SipServer, SipPort);
                     }
 
-                    UdpReceiveResult result = await UdpClient.ReceiveAsync();
+                    UdpReceiveResult result = await UdpConnection.ReceiveAsync();
                     rawMessage = Encoding.ASCII.GetString(result.Buffer);
                     break;
             }
@@ -140,7 +140,7 @@ namespace SipMaui
             {
                 case "401 Unauthorized":
                 case "407 Proxy Authentication Required":
-                    HandleAuthentication(message);
+                    HandleAuthenticationChallenge(message);
                     break;
                 case "OPTIONS":
                     _sipMessageHelper.RespondOptions(SipServer, SipPort, Username, TransportProtocol);
@@ -151,7 +151,7 @@ namespace SipMaui
             }
         }
 
-        public async Task HandleAuthentication(SipMessage message)
+        public async Task HandleAuthenticationChallenge(SipMessage message)
         {
             Console.WriteLine(Password);
             var authenticateHeader = message.Method == "401 Unauthorized" ? "WWW-Authenticate" : "Proxy-Authenticate";
