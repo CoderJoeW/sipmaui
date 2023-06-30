@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SipMaui.Utils;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Sockets;
@@ -135,7 +136,6 @@ namespace SipMaui
 
         public async Task HandleAuthenticationChallenge(SipMessage message)
         {
-            Console.WriteLine(Password);
             var authenticateHeader = message.Method == "401 Unauthorized" ? "WWW-Authenticate" : "Proxy-Authenticate";
             var authenticateValue = message.Headers[authenticateHeader];
             var parameters = authenticateValue.Split(',').Select(param => param.Trim().Split('=')).ToDictionary(parts => parts[0], parts => parts[1].Trim('"'));
@@ -149,33 +149,16 @@ namespace SipMaui
             var nc = "00000001";
             var cnonce = new Random().Next(123400, 9999999).ToString("x");
 
-            var ha1 = ComputeMd5Hash($"{Username}:{realm}:{Password}");
-            var ha2 = ComputeMd5Hash($"REGISTER:{UserSipAddress}");
+            var ha1 = Hashing.Md5($"{Username}:{realm}:{Password}");
+            var ha2 = Hashing.Md5($"REGISTER:{UserSipAddress}");
 
             var response = (qop == "auth")
-                ? ComputeMd5Hash($"{ha1}:{nonce}:{nc}:{cnonce}:{qop}:{ha2}")
-                : ComputeMd5Hash($"{ha1}:{nonce}:{ha2}");
+                ? Hashing.Md5($"{ha1}:{nonce}:{nc}:{cnonce}:{qop}:{ha2}")
+                : Hashing.Md5($"{ha1}:{nonce}:{ha2}");
 
 
 
             await _sipMessageHelper.AuthenticateRegister(message, SipServer, SipPort, Username, UserSipAddress, TransportProtocol, realm, nonce, opaque, qop, nc, cnonce, algorithm, response);
-        }
-
-        public string ComputeMd5Hash(string input)
-        {
-            using (var md5 = System.Security.Cryptography.MD5.Create())
-            {
-                var inputBytes = Encoding.ASCII.GetBytes(input);
-                var hashBytes = md5.ComputeHash(inputBytes);
-
-                var sb = new StringBuilder();
-                for (int i = 0; i < hashBytes.Length; i++)
-                {
-                    sb.Append(hashBytes[i].ToString("x2"));
-                }
-
-                return sb.ToString();
-            }
         }
 
         private async Task SendTcpMessage(byte[] data)
