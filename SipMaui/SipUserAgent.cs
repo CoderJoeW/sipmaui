@@ -1,10 +1,14 @@
-﻿using SipMaui.SIP.Transport;
+﻿using SipMaui.SIP;
+using SipMaui.SIP.Enums;
+using SipMaui.SIP.Transport;
 using SipMaui.SIP.Transport.Interfaces;
 using SipMaui.Utils;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Net.Sockets;
+using System.Runtime;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -87,15 +91,30 @@ namespace SipMaui
         {
             switch(message.Method)
             {
+                case "INVITE":
+                    var session = new SipSession(message);
+                    session.EstablishSession();
+                    Sessions.Add(session);
+                    _sipMessageHelper.RespondWithOk(message, SipServer, SipPort, Username, TransportProtocol);
+                    break;
+                case "BYE":
+                    var terminatedSession = Sessions.FirstOrDefault(s => s.InitialInvite.Headers["Call-ID"] == message.Headers["Call-ID"]);
+                    if (terminatedSession != null)
+                    {
+                        terminatedSession.TerminateSession();
+                        Sessions.Remove(terminatedSession);
+                    }
+                    _sipMessageHelper.RespondWithOk(message ,SipServer, SipPort, Username, TransportProtocol);
+                    break;
                 case "401 Unauthorized":
                 case "407 Proxy Authentication Required":
                     HandleAuthenticationChallenge(message);
                     break;
                 case "OPTIONS":
-                    _sipMessageHelper.RespondWithOk(SipServer, SipPort, Username, TransportProtocol, true);
+                    _sipMessageHelper.RespondWithOk(message, SipServer, SipPort, Username, TransportProtocol, true);
                     break;
                 case "NOTIFY":
-                    _sipMessageHelper.RespondWithOk(SipServer, SipPort, Username, TransportProtocol);
+                    _sipMessageHelper.RespondWithOk(message, SipServer, SipPort, Username, TransportProtocol);
                     break;
             }
         }
@@ -124,7 +143,36 @@ namespace SipMaui
 
 
 
-            await _sipMessageHelper.AuthenticateRegister(message, SipServer, SipPort, Username, UserSipAddress, TransportProtocol, realm, nonce, opaque, qop, nc, cnonce, algorithm, response);
+            await _sipMessageHelper.AuthenticateRegister(message, SipServer, SipPort, Username, UserSipAddress, TransportProtocol, realm, nonce, opaque, qop, nc, cnonce, algorithm, response, message.Headers["Call-ID"]);
+        }
+
+        public async Task InitiateCall(string targetSipAddress)
+        {
+            SipMessage invite = new SipMessageBuilder()
+                .WithMethod($"INVITE sip:{targetSipAddress}")
+                .WithCommonHeaders(SipServer, SipPort, Username, TransportProtocol)
+                .WithHeader("CSeq", "1 INVITE")
+                .Build();
+
+            await SendMessage(invite);
+        }
+
+        public async Task TerminateCall(SipSession session)
+        {
+            if(session.State != SessionState.InProgress)
+            {
+                throw new InvalidOperationException("Call can only be terminated if it's in progress.");
+            }
+
+            SipMessage bye = new SipMessageBuilder()
+                .WithMethod($"BYE sip:{session.InitialInvite.Headers["To"]}")
+                .WithCommonHeaders(SipServer, SipPort, Username, TransportProtocol)
+                .WithHeader("CSeq", "2 BYE")
+                .Build();
+
+            await SendMessage(bye);
+
+            session.TerminateSession();
         }
     }
 }

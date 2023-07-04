@@ -40,13 +40,13 @@ namespace SipMaui.SIP
             return this;
         }
 
-        public SipMessageBuilder WithCommonHeaders(string sipServer, int sipPort, string userSipAddress, string transport, string callId = null)
+        public SipMessageBuilder WithCommonHeaders(string sipServer, int sipPort, string username, string transport, string callId = null)
         {
             _headers["Via"] = $"SIP/2.0/UDP {sipServer}:{sipPort};branch=z9hG4bK{new Random().Next()}";
-            _headers["To"] = $"<{userSipAddress}>";
-            _headers["From"] = $"<{userSipAddress}>";
+            _headers["To"] = $"<sip:{username}@{sipServer}>";
+            _headers["From"] = $"<sip:{username}@{sipServer}>";
             _headers["Call-ID"] = callId ?? Guid.NewGuid().ToString();
-            _headers["Contact"] = $"<{userSipAddress};transport={transport}>";
+            _headers["Contact"] = $"<sip:{username}@{sipServer};transport={transport}>";
 
             return this;
         }

@@ -24,18 +24,18 @@ namespace SipMaui
         {
             SipMessage sipMessage = new SipMessageBuilder()
                 .WithMethod($"REGISTER sip:{username}@{sipServer}")
-                .WithCommonHeaders(sipServer, sipPort, $"sip:{username}@{sipServer}", transport)
+                .WithCommonHeaders(sipServer, sipPort, username, transport)
                 .WithHeader("CSeq", "1 REGISTER")
                 .Build();
 
             await _userAgent.SendMessage(sipMessage);
         }
 
-        public async Task AuthenticateRegister(SipMessage message, string sipServer, int sipPort, string username, string userSipAddress, string transport, string realm, string nonce, string opaque, string qop, string nc, string cnonce, string algorithm, string response)
+        public async Task AuthenticateRegister(SipMessage message, string sipServer, int sipPort, string username, string userSipAddress, string transport, string realm, string nonce, string opaque, string qop, string nc, string cnonce, string algorithm, string response, string callId)
         {
             SipMessage sipMessage = new SipMessageBuilder()
                 .WithMethod($"REGISTER {userSipAddress}")
-                .WithCommonHeaders(sipServer, sipPort, userSipAddress, transport)
+                .WithCommonHeaders(sipServer, sipPort, username, transport, callId)
                 .WithHeader("CSeq", "2 REGISTER")
                 .WithHeader("Expires", EXPIRE)
                 .WithHeader("Max-Forwards", MAX_FORWARDS)
@@ -46,12 +46,22 @@ namespace SipMaui
             await _userAgent.SendMessage(sipMessage);
         }
 
-        public async Task RespondWithOk(string sipServer, int sipPort, string username, string transport, bool allowMethods = false)
+        public async Task RespondWithOk(SipMessage message, string sipServer, int sipPort, string username, string transport, bool allowMethods = false)
         {
+            var headers = new Dictionary<string, string>()
+            {
+                { "Via", message.Headers["Via"] },
+                { "From", message.Headers["From"] },
+                { "To", message.Headers["To"] },
+                { "Call-ID", message.Headers["Call-ID"] },
+                { "CSeq", message.Headers["CSeq"] },
+                { "Contact", message.Headers["Contact"] },
+                { "Content-Length", "0" }
+            };
+
             SipMessageBuilder builder = new SipMessageBuilder()
                 .WithMethod("SIP/2.0 200 OK")
-                .WithCommonHeaders(sipServer, sipPort, username, transport)
-                .WithHeader("Content-Type", "0");
+                .WithHeaders(headers);
 
             if (allowMethods)
             {

@@ -12,6 +12,8 @@ SipMessageHelper sipMessageHelper = new SipMessageHelper(userAgent);
 
 userAgent.MessageReceived += (message) =>
 {
+    if (message.Method == "OPTIONS") return;
+    if (message.Method == "NOTIFY") return;
     Console.WriteLine("Received message: " + message.Method);
 };
 
@@ -23,6 +25,11 @@ userAgent.MessageSent += (message) =>
 userAgent.StartListeningForSipMessages();
 
 await sipMessageHelper.Register(config.SipServer, config.SipPort, config.Username, config.TransportProtocol);
+
+Console.WriteLine("Press any key to stop listening...");
+Console.ReadKey();
+
+await userAgent.InitiateCall("7432239193@128.136.225.152");
 
 Console.WriteLine("Press any key to stop listening...");
 Console.ReadKey();
