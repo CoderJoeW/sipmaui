@@ -95,7 +95,7 @@ namespace SipMaui
                     var session = new SipSession(message);
                     session.EstablishSession();
                     Sessions.Add(session);
-                    _sipMessageHelper.RespondWithOk(message, SipServer, SipPort, Username, TransportProtocol);
+                    RespondOk(message);
                     break;
                 case "BYE":
                     var terminatedSession = Sessions.FirstOrDefault(s => s.InitialInvite.Headers["Call-ID"] == message.Headers["Call-ID"]);
@@ -104,19 +104,24 @@ namespace SipMaui
                         terminatedSession.TerminateSession();
                         Sessions.Remove(terminatedSession);
                     }
-                    _sipMessageHelper.RespondWithOk(message ,SipServer, SipPort, Username, TransportProtocol);
+                    RespondOk(message);
                     break;
                 case "401 Unauthorized":
                 case "407 Proxy Authentication Required":
                     HandleAuthenticationChallenge(message);
                     break;
                 case "OPTIONS":
-                    _sipMessageHelper.RespondWithOk(message, SipServer, SipPort, Username, TransportProtocol, true);
+                    RespondOk(message);
                     break;
                 case "NOTIFY":
-                    _sipMessageHelper.RespondWithOk(message, SipServer, SipPort, Username, TransportProtocol);
+                    RespondOk(message);
                     break;
             }
+        }
+
+        private void RespondOk(SipMessage message)
+        {
+            _sipMessageHelper.RespondWithOk(message, SipServer, SipPort, Username, TransportProtocol, true);
         }
 
         public async Task HandleAuthenticationChallenge(SipMessage message)
