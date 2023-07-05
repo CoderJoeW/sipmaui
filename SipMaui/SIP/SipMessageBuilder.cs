@@ -11,6 +11,7 @@ namespace SipMaui.SIP
         private string _method;
         private Dictionary<string, string> _headers = new Dictionary<string, string>();
         private string _body;
+        private Random _random = new Random();
 
         public SipMessageBuilder WithMethod(string method)
         {
@@ -42,7 +43,7 @@ namespace SipMaui.SIP
 
         public SipMessageBuilder WithCommonHeaders(string sipServer, int sipPort, string username, string transport, string callId = null)
         {
-            _headers["Via"] = $"SIP/2.0/UDP {sipServer}:{sipPort};branch=z9hG4bK{new Random().Next()}";
+            _headers["Via"] = $"SIP/2.0/UDP {sipServer}:{sipPort};branch=z9hG4bK{_random.Next()}";
             _headers["To"] = $"<sip:{username}@{sipServer}>";
             _headers["From"] = $"<sip:{username}@{sipServer}>";
             _headers["Call-ID"] = callId ?? Guid.NewGuid().ToString();
